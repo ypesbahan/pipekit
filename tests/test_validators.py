@@ -39,6 +39,20 @@ def test_require_fields_empty_input():
     assert require_fields("x")([])==[]
 
 
+def test_require_fields_multiple_fields_all_missing():
+    """All required fields missing should drop the record (or raise in strict mode)."""
+    records = [{"unrelated": "value"}]
+    result = require_fields("name", "age")(records)
+    assert result == []
+
+
+def test_require_fields_strict_raises_with_multiple_missing():
+    """Strict mode should raise even when multiple fields are missing."""
+    records = [{"unrelated": "value"}]
+    with pytest.raises(ValidationError, match="missing required fields"):
+        require_fields("name", "age", strict=True)(records)
+
+
 # --- validate_field ---
 
 def test_validate_field_keeps_valid_records():
@@ -95,3 +109,10 @@ def test_coerce_field_preserves_other_fields():
     records = [{"age": "30", "name": "Alice"}]
     result = coerce_field("age", int)(records)
     assert result == [{"age": 30, "name": "Alice"}]
+
+
+def test_coerce_field_missing_key_drops_record():
+    """Records missing the target field should be dropped when coercion is attempted."""
+    records = [{"name": "Alice"}, {"age": "25", "name": "Bob"}]
+    result = coerce_field("age", int)(records)
+    assert result == [{"age": 25, "name": "Bob"}]
